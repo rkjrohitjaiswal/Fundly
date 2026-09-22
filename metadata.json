@@ -1,0 +1,6 @@
+{
+  "name": "Fundly",
+  "description": "Peer-to-peer lending, made simple.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
