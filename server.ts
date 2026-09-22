@@ -1,38 +1,15 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response } from 'express';
 import path from 'path';
-import cookieParser from 'cookie-parser';
 import { createServer as createViteServer } from 'vite';
-import { connectDB } from './server/src/config/db.js';
-import apiRouter from './server/src/routes/index.js';
-import { seedDatabase } from './server/src/utils/seedData.js';
+import { app, ensureInitialized } from './server/src/app.js';
 
 async function startServer() {
-  const app = express();
   const PORT = 3000;
 
-  // Global Middlewares
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-  app.use(cookieParser());
+  // Ensure DB and seed data are ready
+  await ensureInitialized();
 
-  // Connect to Database and Seed Development Data
-  await connectDB();
-  await seedDatabase();
-
-  // Mount Centralized API Routes FIRST
-  app.use('/api', apiRouter);
-
-  // Centralized Error Handling Middleware
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error('[Fundly Server Error]', err);
-    res.status(err.status || 500).json({
-      success: false,
-      message: err.message || 'Internal Server Error',
-      errorCode: err.code || 'SERVER_ERROR',
-    });
-  });
-
-  // Vite middleware setup
+  // Vite middleware setup for local development / static serving for production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

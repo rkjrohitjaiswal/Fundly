@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 let isConnected = false;
+let hasLoggedMode = false;
 
 // Register Mongoose connection event listeners
 mongoose.connection.on('connected', () => {
@@ -18,7 +19,20 @@ mongoose.connection.on('disconnected', () => {
 });
 
 export async function connectDB(): Promise<boolean> {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/fundly';
+  if (isConnected && mongoose.connection.readyState === 1) {
+    return true;
+  }
+
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    if (!hasLoggedMode) {
+      console.log('[Fundly DB] No MONGODB_URI provided. Running in high-performance Demo In-Memory mode.');
+      hasLoggedMode = true;
+    }
+    isConnected = false;
+    return false;
+  }
+
   try {
     mongoose.set('strictQuery', false);
     

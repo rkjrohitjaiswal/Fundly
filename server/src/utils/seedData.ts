@@ -18,103 +18,121 @@ import {
 import { isDbConnected } from '../config/db.js';
 import { LoanCalculator } from '../services/loanCalculator.js';
 
+let isSeeding = false;
+
 export async function seedDatabase() {
-  console.log('[Fundly Seed] Seeding development data...');
-  const salt = await bcrypt.genSalt(10);
-  const defaultPasswordHash = await bcrypt.hash('password123', salt);
+  if (isSeeding) return;
+  isSeeding = true;
 
-  // If DB is connected, check if already seeded
-  if (isDbConnected()) {
-    const userCount = await UserModel.countDocuments();
-    if (userCount > 0) {
-      console.log('[Fundly Seed] Database already contains data, skipping seed.');
-      return;
+  try {
+    console.log('[Fundly Seed] Checking/seeding development data...');
+    const salt = await bcrypt.genSalt(10);
+    const defaultPasswordHash = await bcrypt.hash('password123', salt);
+
+    // If DB is connected, check if already seeded
+    if (isDbConnected()) {
+      const userCount = await UserModel.countDocuments();
+      if (userCount > 0) {
+        console.log('[Fundly Seed] MongoDB already contains data, skipping seed.');
+        return;
+      }
+    } else {
+      if (inMemoryStore.users.length > 0 && inMemoryStore.loans.length > 0) {
+        console.log('[Fundly Seed] In-memory store already seeded.');
+        return;
+      }
     }
-  } else {
-    if (inMemoryStore.users.length > 0) {
-      return;
-    }
-  }
 
-  // 1. Create Core Users
-  const user1 = await UserRepo.create({
-    displayName: 'Alex Rivera',
-    email: 'alex@fundly.demo',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  });
+    const findOrCreateUser = async (data: {
+      displayName: string;
+      email: string;
+      passwordHash: string;
+      photoURL?: string;
+    }) => {
+      const existing = await UserRepo.findByEmail(data.email);
+      if (existing) return existing;
+      return await UserRepo.create(data);
+    };
 
-  // Also support alex@fundly.app
-  await UserRepo.create({
-    displayName: 'Alex Rivera (App)',
-    email: 'alex@fundly.app',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  });
+    // 1. Create Core Users
+    const user1 = await findOrCreateUser({
+      displayName: 'Alex Rivera',
+      email: 'alex@fundly.demo',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const friendElena = await UserRepo.create({
-    displayName: 'Elena Vance',
-    email: 'elena@fundly.app',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-  });
+    // Also support alex@fundly.app
+    await findOrCreateUser({
+      displayName: 'Alex Rivera (App)',
+      email: 'alex@fundly.app',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const friendMichael = await UserRepo.create({
-    displayName: 'Michael Chang',
-    email: 'michael@fundly.demo',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  });
+    const friendElena = await findOrCreateUser({
+      displayName: 'Elena Vance',
+      email: 'elena@fundly.app',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const friendDavid = await UserRepo.create({
-    displayName: 'David Chen',
-    email: 'david@fundly.app',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-  });
+    const friendMichael = await findOrCreateUser({
+      displayName: 'Michael Chang',
+      email: 'michael@fundly.demo',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const strangerMarcus = await UserRepo.create({
-    displayName: 'Marcus Wright',
-    email: 'marcus@peerlink.io',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-  });
+    const friendDavid = await findOrCreateUser({
+      displayName: 'David Chen',
+      email: 'david@fundly.app',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const strangerSarah = await UserRepo.create({
-    displayName: 'Sarah Jenkins',
-    email: 'sarah@fundly.demo',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-  });
+    const strangerMarcus = await findOrCreateUser({
+      displayName: 'Marcus Wright',
+      email: 'marcus@peerlink.io',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    });
 
-  // Also support sarah@globalventures.com
-  await UserRepo.create({
-    displayName: 'Sarah Jenkins (GV)',
-    email: 'sarah@globalventures.com',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-  });
+    const strangerSarah = await findOrCreateUser({
+      displayName: 'Sarah Jenkins',
+      email: 'sarah@fundly.demo',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const strangerLiam = await UserRepo.create({
-    displayName: 'Liam O\'Connor',
-    email: 'liam@craftworks.co',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
-  });
+    // Also support sarah@globalventures.com
+    await findOrCreateUser({
+      displayName: 'Sarah Jenkins (GV)',
+      email: 'sarah@globalventures.com',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const strangerMaya = await UserRepo.create({
-    displayName: 'Maya Patel',
-    email: 'maya@solaris.net',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-  });
+    const strangerLiam = await findOrCreateUser({
+      displayName: 'Liam O\'Connor',
+      email: 'liam@craftworks.co',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80',
+    });
 
-  const strangerKevin = await UserRepo.create({
-    displayName: 'Kevin Zhao',
-    email: 'kevin@nexusgrowth.com',
-    passwordHash: defaultPasswordHash,
-    photoURL: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
-  });
+    const strangerMaya = await findOrCreateUser({
+      displayName: 'Maya Patel',
+      email: 'maya@solaris.net',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    });
+
+    const strangerKevin = await findOrCreateUser({
+      displayName: 'Kevin Zhao',
+      email: 'kevin@nexusgrowth.com',
+      passwordHash: defaultPasswordHash,
+      photoURL: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80',
+    });
 
   const alexId = user1._id.toString();
   const elenaId = friendElena._id.toString();
@@ -430,4 +448,9 @@ export async function seedDatabase() {
   });
 
   console.log('[Fundly Seed] Seeding complete successfully with rich demo data!');
+  } catch (err) {
+    console.error('[Fundly Seed] Error during seeding:', err);
+  } finally {
+    isSeeding = false;
+  }
 }

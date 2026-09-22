@@ -15,6 +15,7 @@ import {
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   withCredentials: true,
+  timeout: 12000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -26,8 +27,31 @@ api.interceptors.request.use((config) => {
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  if (import.meta.env.DEV || true) {
+    console.log(`[Fundly API] ${config.method?.toUpperCase()} ${config.url}`);
+  }
   return config;
 });
+
+// Intercept responses for helpful logging and debugging
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response) {
+      console.warn(
+        `[Fundly API] Response Error ${error.response.status} from ${error.config?.url}:`,
+        error.response.data?.message || error.response.statusText
+      );
+    } else if (error.request) {
+      console.error(`[Fundly API] Network Timeout or No Response from ${error.config?.url}:`, error.message);
+    } else {
+      console.error('[Fundly API] Request Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const authService = {
   async register(data: { displayName: string; email: string; password: string }) {

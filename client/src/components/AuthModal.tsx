@@ -57,7 +57,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       if (onSuccess) onSuccess();
     } catch (err: any) {
       setErrorMsg(
-        err.response?.data?.message || 'Authentication error. Please check your credentials.'
+        err.message || err.response?.data?.message || 'Authentication error. Please check your credentials.'
       );
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClose();
       if (onSuccess) onSuccess();
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Demo sign-in failed.');
+      setErrorMsg(err.message || err.response?.data?.message || 'Demo sign-in failed.');
     } finally {
       setLoading(false);
     }

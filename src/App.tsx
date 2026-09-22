@@ -1,5 +1,5 @@
-import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '../client/src/hooks/useAuth.js';
 import { HomePage } from '../client/src/pages/HomePage.js';
 import { PublicLandingPage } from '../client/src/pages/PublicLandingPage.js';
@@ -72,10 +72,22 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const HashMigrator: React.FC = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (window.location.hash.startsWith('#/')) {
+      const path = window.location.hash.slice(1);
+      navigate(path, { replace: true });
+    }
+  }, [navigate]);
+  return null;
+};
+
 export default function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
+        <HashMigrator />
         <Routes>
           {/* Root: Live Public Marketplace & Landing if unauthenticated, Private Dashboard if authenticated */}
           <Route path="/" element={<RootRoute />} />
@@ -175,7 +187,7 @@ export default function App() {
           {/* Catch-all redirect to Root */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

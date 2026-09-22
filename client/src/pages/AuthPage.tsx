@@ -42,7 +42,7 @@ export const AuthPage: React.FC = () => {
       navigate('/');
     } catch (err: any) {
       setErrorMsg(
-        err.response?.data?.message || 'Authentication failed. Please verify credentials.'
+        err.message || err.response?.data?.message || 'Authentication failed. Please verify credentials.'
       );
     } finally {
       setLoading(false);
@@ -56,7 +56,7 @@ export const AuthPage: React.FC = () => {
       await login(demoEmail, 'password123');
       navigate('/');
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.message || 'Demo login failed.');
+      setErrorMsg(err.message || err.response?.data?.message || 'Demo login failed.');
     } finally {
       setLoading(false);
     }
